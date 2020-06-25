@@ -22,7 +22,7 @@ class MsgLog:
         self.log = queue.Queue(maxsize=self.msg_limit)
 
 
-    async def log(message: discord.Message) -> None:
+    async def log(self, message: discord.Message) -> None:
         '''Writes a message to the log.
         
         Args:
@@ -38,7 +38,7 @@ class MsgLog:
             await self.dump()
 
 
-    async def dump() -> None:
+    async def dump(self) -> None:
         '''Dumps the log to file. This method can be called manually, but it is called
         automatically by the log() method once the log message limit is reached.
         
@@ -71,7 +71,7 @@ class HaruClient(discord.Client):
         self.__log = MsgLog(log_msg_limit = config['log_msg_limit'])
 
         
-    async def start_poll(message: discord.Message):
+    async def start_poll(self, message: discord.Message):
         #aggregate message into its components, then delete it
         content_split = message.content[5:].split(' !')[1:]
         question = content_split[0]
@@ -86,7 +86,7 @@ class HaruClient(discord.Client):
 
 
     @client.event
-    async def on_ready():
+    async def on_ready(self):
         print('Client is online')
         #add_verification_emoji_to_rules_post
 
@@ -94,7 +94,7 @@ class HaruClient(discord.Client):
     # // @client.event: If a user disconnects from the music voice channel, the 'Music' role will be removed from them \\
 
     @client.event
-    async def on_message(message: discord.Message):
+    async def on_message(self, message: discord.Message):
         if(message.content.startswith('+')):
             server  = message.channel.guild
             channel = message.channel
@@ -119,7 +119,7 @@ class HaruClient(discord.Client):
 
                 
     @client.event
-    async def on_member_join(member: discord.Member) -> None:
+    async def on_member_join(self, member: discord.Member) -> None:
         '''Overrides the on_member_join event to let Haru welcome users to the server.
         
         Arguments:
