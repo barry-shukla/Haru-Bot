@@ -4,13 +4,9 @@ import configparser
 import queue
 import os
 
-# Warning: default log message limit is unlimited
-_DEFAULT_MSG_LIMIT = 0
-
 class MsgLog:
 
-    '''Defines an asyncio-compatible in-memory Discord message log.
-    '''
+    '''Defines an asyncio-compatible in-memory Discord message log.'''
 
     def __init__(self, *args, **kwargs):
         if 'msg_limit' not in kwargs:
@@ -50,7 +46,7 @@ class MsgLog:
             with open(filename, 'a') as f:
                 while not self.log.empty():
                     msg = self.log.get()
-                    f.write('{}:{}:{}:{}'.format(msg.id, msg.author, msg.content, msg.created_at)))
+                    f.write('{}:{}:{}:{}'.format(msg.id, msg.created_at, msg.author, msg.content)))
         
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
@@ -65,13 +61,97 @@ class MsgLog:
 class HaruClient(discord.Client):
 
     def __init__(*args, loop=None, **options):
-        super(discord.Client, self).__init__(*args, loop, **options)
-        # do not catch the potential KeyErrors here, let it be the users fault
-        self.__config = options['config']
-        self.__log = MsgLog(log_msg_limit = config['log_msg_limit'])
+        '''Returns a new instance of a HaruClient discord bot. It is required 'options'
+        contain a 'config' key that maps to a ConfigParser object. The parser can be empty
+        but it can not be None.
 
-        
-    async def start_poll(self, message: discord.Message):
+        Args:
+            args (collections.abc.Sequence): A sequence containing arguments passed to the 
+            client during initialization.
+            loop (asyncio event loop): The loop to run the client on.
+            options (collections.abc.Mapping): A dict-like object containing key-value pairs
+            passed to the client during initialization.
+
+        Raises:
+            (KeyError): If 'config' is not found in 'options'.
+            (TypeError):  If 'config' is None or is not a ConfigParser object.
+        '''
+        super(discord.Client, self).__init__(*args, loop, **options)
+        if 'config' not in options:
+            raise KeyError
+        if not options['config'] or type(options['config']) is not configparser.ConfigParser:
+            raise TypeError
+        self.config = options['config']
+        self.log = MsgLog(log_msg_limit = config['DEFAULT']['log_msg_limit'])
+
+
+    def get_config_value(self, key: str, section='DEFAULT': str):
+        '''Attempts to return a value from the the clients configuration.
+
+        Args:
+            key (str): The key corresponding to the value to retrieve.
+            section (str): The section the key falls under (default: 'DEFAULT').
+
+        Raises:
+            (KeyError): If section or key do not exist in the configuration.
+
+        Since: 26/06/2020
+
+        Author: Christen Ford
+        '''
+        if section not in self.config:
+            raise KeyError
+        if key not in self.config[section]:
+            raise KeyError
+        return self.__config[section][key]
+
+
+    def stash_config_value(self, section: str, key: str, value) -> None:
+        '''Stores a key/value pair in the configuration under the specified section.
+        Do not store non-primitive types (i.e. object types) in the configuration file.
+        If you need to store a dictionary, store it as a separate section. Iterable types
+        like lists, dicts and sets should be ok though as long as they do not contain 
+        custom object types.
+
+        Args:
+            section (str): The section to store the value in.
+            key (str): The key used to uniquely identify the value.
+            value (Any): The value to store in the configuration.
+
+        Since: 26/06/2020
+
+        Author: Christen Ford
+        '''
+        if section not in self.config:
+            self.config[section] = dict()
+        self.config[section][key] = value
+
+    
+    def quote_inspirobot(url='http://inspirobot.me/api?generate=true'):
+        '''Attempts to connect to the inspirobot quote AI. Returns an error message
+        on error, or the response body on success.
+
+        Args:
+            url (str): The inspirobot url (default: \'http://inspirobot.me/api?generate=true\')
+
+        Since: 26/06/2020
+
+        Author: Christen Ford
+        '''
+        import http.client as http
+
+        conn = http.HTTPConnection(url)
+        resp = conn.getresponse()
+        conn.close()
+        if resp.status != 200:
+            return 'Sorry, I couldn\'t reach inspirobot."
+        else:
+            return resp.read()
+
+
+
+    @staticmethod
+    async def start_poll(message: discord.Message):
         #aggregate message into its components, then delete it
         content_split = message.content[5:].split(' !')[1:]
         question = content_split[0]
@@ -115,7 +195,9 @@ class HaruClient(discord.Client):
             Votes for [OptionN] [N]
             """
             if ( message.content[1:5].lower() == 'poll' ):
-                start_poll(message)
+                HaruClient.start_poll(message)
+        elif message.content == '!inspirome':
+            await message.channel.send(quote_inspirobot())
 
                 
     @client.event
@@ -141,7 +223,7 @@ class HaruClient(discord.Client):
 # utility methods
 #
 
-def get_config(config_file='config.txt' -> str):
+def get_config(config_file='config.txt': str):
     '''Returns an instance of a ConfigParser from Lib/configparser.
 
     Args:
@@ -161,7 +243,7 @@ def get_config(config_file='config.txt' -> str):
     return config
 
 
-def get_token(token_file='token.txt' -> str):
+def get_token(token_file='token.txt': str):
     #j
     token = ''
     with open(token_file) as file: # 'r' is default open mode
