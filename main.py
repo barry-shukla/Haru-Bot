@@ -1,61 +1,7 @@
 import discord
 import asyncio
 import configparser
-import queue
 import os
-
-class MsgLog:
-
-    '''Defines an asyncio-compatible in-memory Discord message log.'''
-
-    def __init__(self, *args, **kwargs):
-        if 'msg_limit' not in kwargs:
-            self.msg_limit = _DEFAULT_MSG_LIMIT
-        else:
-            self.msg_limit = kwargs['msg_limit']
-        self.filename = kwargs['filename']
-        # enqueues will block once the queue is full - this queue is thread safe
-        self.log = queue.Queue(maxsize=self.msg_limit)
-
-
-    async def log(self, message: discord.Message) -> None:
-        '''Writes a message to the log.
-        
-        Args:
-            message (discord.Message): An instance of a discord message to log.
-        
-        Since: 24/05/2020
-    
-        Author: Christen Ford
-        '''
-        # this *could* potentially block the client if users spam it fast enough
-        self.log.put(message)
-        if self.log.full():
-            await self.dump()
-
-
-    async def dump(self) -> None:
-        '''Dumps the log to file. This method can be called manually, but it is called
-        automatically by the log() method once the log message limit is reached.
-        
-        Since: 24/05/2020
-    
-        Author: Christen Ford
-        '''
-        def _dump():
-            with open(filename, 'a') as f:
-                while not self.log.empty():
-                    msg = self.log.get()
-                    f.write('{}:{}:{}:{}'.format(msg.id, msg.created_at, msg.author, msg.content)))
-        
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,  _dump()
-        )
-        
-        if not result:
-            # TODO: error occurred dumping message log to file
-            pass
     
 
 class HaruClient(discord.Client):
@@ -82,7 +28,6 @@ class HaruClient(discord.Client):
         if not options['config'] or type(options['config']) is not configparser.ConfigParser:
             raise TypeError
         self.config = options['config']
-        self.log = MsgLog(log_msg_limit = config['DEFAULT']['log_msg_limit'])
 
 
     def get_config_value(self, key: str, section='DEFAULT': str):
