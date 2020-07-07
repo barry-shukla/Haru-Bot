@@ -165,7 +165,7 @@ class HaruClient(discord.Client):
         if not message.channel_mentions:
             await message.channel.send(
                 'I cannot move guild members \'{}\', no voice channel mentioned!', 
-                ', '.join(m.nick for m in message.mentions)
+                ', '.join([m.nick for m in message.mentions])
             )
         if not message.mentions:
             await message.channel.send(
@@ -179,7 +179,7 @@ class HaruClient(discord.Client):
         if not isinstance(channel, discord.VoiceChannel):
             await message.channel.send(
                 'I cannot move guild members \'{}\' to \'{}\', invalid channel specified!',
-                ', '.join(m.nick for m in message.mentions),
+                ', '.join([m.nick for m in message.mentions]),
                 message.channel_mentions[0]
             )
         # move all mentioned users to it
