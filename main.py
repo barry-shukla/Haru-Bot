@@ -149,7 +149,6 @@ class HaruClient(discord.Client):
             return resp.read()
 
 
-
     @staticmethod
     async def start_poll(message: discord.Message):
         #aggregate message into its components, then delete it
@@ -172,6 +171,7 @@ class HaruClient(discord.Client):
 
     # // @client.event: If a user connects to the music voice channel, the 'Music' role will be assigned to them \\
     # // @client.event: If a user disconnects from the music voice channel, the 'Music' role will be removed from them \\
+
 
     @client.event
     async def on_message(self, message: discord.Message):
@@ -196,8 +196,50 @@ class HaruClient(discord.Client):
             """
             if ( message.content[1:5].lower() == 'poll' ):
                 HaruClient.start_poll(message)
-        elif message.content == '!inspirome':
+        elif message.content.lower() == '!haru-inspire':
             await message.channel.send(quote_inspirobot())
+        elif message.content.lower() == '!haru-help':
+            # TODO: Currently thinking of the best place to store the help string
+            await message.channel.send('Nani?')
+        elif message.content.lower() == '!haru-move':
+            await HaruClient.move_members_to(message)
+
+
+    @staticmethod
+    async def move_members_to(message):
+        '''Moves mentioned members to the first voice channel mentioned.
+
+        Args:
+            (discord.Message): A discord message object containing at least one mentioned member and 
+            at least one mentioned voice channel.
+        
+        Since: 06/07/2020
+
+        Author(s): Christen Ford
+        '''
+        if not message.channel_mentions:
+            await message.channel.send(
+                'I cannot move guild members \'{}\', no voice channel mentioned!', 
+                ', '.join(m.nick for m in message.mentions)
+            )
+        if not message.mentions:
+            await message.channel.send(
+                'I cannot move guild members to \'{}\', no members mentioned!',
+                message.channel_mentions[0]
+            )
+        # get the channel id
+        channel = message.channel_mentions[0]
+        # TODO: Not entirely sure this check works since mentioned channels are discord.GuildChannel 
+        #   types - The abc class for TextChannel, VoiceChannel and CategoryChannel
+        if not isinstance(channel, discord.VoiceChannel):
+            await message.channel.send(
+                'I cannot move guild members \'{}\' to \'{}\', invalid channel specified!',
+                ', '.join(m.nick for m in message.mentions),
+                message.channel_mentions[0]
+            )
+        # move all mentioned users to it
+        for member in message.mentions:
+            await member.move_to(channel)
 
                 
     @client.event
